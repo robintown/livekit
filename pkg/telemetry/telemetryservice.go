@@ -139,7 +139,7 @@ func (t *telemetryService) deleteParticipant(participantID livekit.ParticipantID
 	t.lock.Lock()
 	defer t.lock.Unlock()
 
-	if _, ok := t.participants[participantID]; ok {
+	if _, ok := t.participants[participantID]; !ok {
 		return false
 	}
 	delete(t.participants, participantID)
