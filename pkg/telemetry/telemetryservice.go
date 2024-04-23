@@ -98,6 +98,8 @@ type telemetryService struct {
 	lock          sync.RWMutex
 	workers       map[livekit.ParticipantID]*StatsWorker
 	workersShadow []*StatsWorker
+
+	participants map[livekit.ParticipantID]struct{}
 }
 
 func NewTelemetryService(notifier webhook.QueuedNotifier, analytics AnalyticsService) TelemetryService {
@@ -112,12 +114,36 @@ func NewTelemetryService(notifier webhook.QueuedNotifier, analytics AnalyticsSer
 			Logger:      logger.GetLogger(),
 		}),
 		workers: make(map[livekit.ParticipantID]*StatsWorker),
+
+		participants: map[livekit.ParticipantID]struct{}{},
 	}
 
 	// t.jobsQueue.Start()
 	// go t.run()
 
 	return t
+}
+
+func (t *telemetryService) getOrCreateParticipant(participantID livekit.ParticipantID) bool {
+	t.lock.Lock()
+	defer t.lock.Unlock()
+
+	if _, ok := t.participants[participantID]; ok {
+		return false
+	}
+	t.participants[participantID] = struct{}{}
+	return true
+}
+
+func (t *telemetryService) deleteParticipant(participantID livekit.ParticipantID) bool {
+	t.lock.Lock()
+	defer t.lock.Unlock()
+
+	if _, ok := t.participants[participantID]; ok {
+		return false
+	}
+	delete(t.participants, participantID)
+	return true
 }
 
 func (t *telemetryService) FlushStats() {

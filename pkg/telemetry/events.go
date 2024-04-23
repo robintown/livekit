@@ -19,6 +19,7 @@ import (
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/livekit/livekit-server/pkg/telemetry/prometheus"
 	"github.com/livekit/protocol/livekit"
 )
 
@@ -74,6 +75,11 @@ func (t *telemetryService) ParticipantJoined(
 	clientMeta *livekit.AnalyticsClientMeta,
 	shouldSendEvent bool,
 ) {
+	if created := t.getOrCreateParticipant(livekit.ParticipantID(participant.Sid)); created {
+		prometheus.IncrementParticipantRtcConnected(1)
+		prometheus.AddParticipant()
+	}
+
 	// t.enqueue(func() {
 	// 	_, found := t.getOrCreateWorker(
 	// 		ctx,
@@ -103,6 +109,10 @@ func (t *telemetryService) ParticipantActive(
 	clientMeta *livekit.AnalyticsClientMeta,
 	isMigration bool,
 ) {
+	if created := t.getOrCreateParticipant(livekit.ParticipantID(participant.Sid)); created {
+		prometheus.AddParticipant()
+	}
+
 	// t.enqueue(func() {
 	// 	if !isMigration {
 	// 		// consider participant joined only when they became active
@@ -154,6 +164,10 @@ func (t *telemetryService) ParticipantLeft(ctx context.Context,
 	participant *livekit.ParticipantInfo,
 	shouldSendEvent bool,
 ) {
+	if deleted := t.deleteParticipant(livekit.ParticipantID(participant.Sid)); deleted {
+		prometheus.SubParticipant()
+	}
+
 	// t.enqueue(func() {
 	// 	isConnected := false
 	// 	if worker, ok := t.getWorker(livekit.ParticipantID(participant.Sid)); ok {
@@ -182,6 +196,7 @@ func (t *telemetryService) TrackPublishRequested(
 	identity livekit.ParticipantIdentity,
 	track *livekit.TrackInfo,
 ) {
+	prometheus.AddPublishAttempt(track.Type.String())
 	// t.enqueue(func() {
 	// 	prometheus.AddPublishAttempt(track.Type.String())
 	// 	room := t.getRoomDetails(participantID)
@@ -199,6 +214,8 @@ func (t *telemetryService) TrackPublished(
 	identity livekit.ParticipantIdentity,
 	track *livekit.TrackInfo,
 ) {
+	prometheus.AddPublishedTrack(track.Type.String())
+	prometheus.AddPublishSuccess(track.Type.String())
 	// t.enqueue(func() {
 	// 	prometheus.AddPublishedTrack(track.Type.String())
 	// 	prometheus.AddPublishSuccess(track.Type.String())
@@ -249,6 +266,7 @@ func (t *telemetryService) TrackSubscribeRequested(
 	participantID livekit.ParticipantID,
 	track *livekit.TrackInfo,
 ) {
+	prometheus.RecordTrackSubscribeAttempt()
 	// t.enqueue(func() {
 	// 	prometheus.RecordTrackSubscribeAttempt()
 
@@ -265,6 +283,7 @@ func (t *telemetryService) TrackSubscribed(
 	publisher *livekit.ParticipantInfo,
 	shouldSendEvent bool,
 ) {
+	prometheus.RecordTrackSubscribeSuccess(track.Type.String())
 	// t.enqueue(func() {
 	// 	prometheus.RecordTrackSubscribeSuccess(track.Type.String())
 
@@ -286,6 +305,7 @@ func (t *telemetryService) TrackSubscribeFailed(
 	err error,
 	isUserError bool,
 ) {
+	prometheus.RecordTrackSubscribeFailure(err, isUserError)
 	// t.enqueue(func() {
 	// 	prometheus.RecordTrackSubscribeFailure(err, isUserError)
 
@@ -304,6 +324,7 @@ func (t *telemetryService) TrackUnsubscribed(
 	track *livekit.TrackInfo,
 	shouldSendEvent bool,
 ) {
+	prometheus.RecordTrackUnsubscribed(track.Type.String())
 	// t.enqueue(func() {
 	// 	prometheus.RecordTrackUnsubscribed(track.Type.String())
 
@@ -321,6 +342,7 @@ func (t *telemetryService) TrackUnpublished(
 	track *livekit.TrackInfo,
 	shouldSendEvent bool,
 ) {
+	prometheus.SubPublishedTrack(track.Type.String())
 	// t.enqueue(func() {
 	// 	prometheus.SubPublishedTrack(track.Type.String())
 	// 	if !shouldSendEvent {
