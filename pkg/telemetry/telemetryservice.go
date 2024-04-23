@@ -114,8 +114,8 @@ func NewTelemetryService(notifier webhook.QueuedNotifier, analytics AnalyticsSer
 		workers: make(map[livekit.ParticipantID]*StatsWorker),
 	}
 
-	t.jobsQueue.Start()
-	go t.run()
+	// t.jobsQueue.Start()
+	// go t.run()
 
 	return t
 }
@@ -148,7 +148,7 @@ func (t *telemetryService) run() {
 }
 
 func (t *telemetryService) enqueue(op func()) {
-	t.jobsQueue.Enqueue(op)
+	// t.jobsQueue.Enqueue(op)
 }
 
 func (t *telemetryService) getWorker(participantID livekit.ParticipantID) (worker *StatsWorker, ok bool) {
@@ -216,7 +216,7 @@ func (t *telemetryService) cleanupWorkers() {
 }
 
 func (t *telemetryService) LocalRoomState(ctx context.Context, info *livekit.AnalyticsNodeRooms) {
-	t.enqueue(func() {
-		t.SendNodeRoomStates(ctx, info)
-	})
+	// t.enqueue(func() {
+	// 	t.SendNodeRoomStates(ctx, info)
+	// })
 }
